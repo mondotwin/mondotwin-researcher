@@ -1,0 +1,16 @@
+{
+  "name": "mondotwin",
+  "description": "mondoTWIN plugins for clinical researchers.",
+  "owner": {
+    "name": "SHRARE Technology AG / mondoTWIN",
+    "url": "https://www.mondotwin.com"
+  },
+  "plugins": [
+    {
+      "name": "mondotwin-researcher",
+      "source": "./",
+      "description": "Similar-trial benchmarks, protocol section review, eligibility criteria, endpoints and estimands, and ICH/FDA guidance lookup on mondoTWIN's registry and guidance database.",
+      "category": "research"
+    }
+  ]
+}

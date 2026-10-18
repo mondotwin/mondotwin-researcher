@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "mondotwin": {
+      "type": "http",
+      "url": "https://mcp.mondotwin.com/mcp"
+    }
+  }
+}
