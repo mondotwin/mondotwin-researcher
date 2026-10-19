@@ -16,7 +16,7 @@ Check one protocol section against what comparable trials did and what ICH guida
 5. No patient data. A protocol is fine; identifiable patient information is not. If the user pastes it, do not repeat it and ask them to remove it.
 6. The output is a draft for qualified professionals to validate. Every proposed change is marked "to validate".
 7. Answer in the user's language. Quote registry text and guidelines verbatim in their original language; add a translation when the user's language differs.
-8. Use only `search_clinical_studies`, `get_clinical_study`, `search_ich_guidelines`, `get_ich_guideline_full`, `search_fda_guidelines`, `get_fda_guideline_full` and, for a mechanistic rationale only, `get_disease_targets`. If the mondoTWIN tools are not available, tell the user to connect the mondoTWIN connector, and stop.
+8. Use only `search_clinical_studies`, `get_clinical_study`, `search_ich_guidelines`, `get_ich_guideline_full`, `search_fda_guidelines`, `get_fda_guideline_full` and, for a mechanistic rationale only, `get_disease_targets`. `query_clinical_studies` is also available for counts and comparisons across many trials (read-only SQL over the trial tables; see the query-clinical-studies skill). If the mondoTWIN tools are not available, tell the user to connect the mondoTWIN connector, and stop.
 
 ## How the tools behave
 

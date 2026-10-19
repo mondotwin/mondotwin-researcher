@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "mondotwin-researcher",
+  "version": "0.2.0",
+  "description": "Six clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, count and compare registered trials with read-only SQL, review a protocol section against ICH, draft eligibility criteria with drug-interaction screening, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
+  "author": {
+    "name": "SHRARE Technology AG / mondoTWIN",
+    "email": "francesco@mondotwin.com",
+    "url": "https://www.mondotwin.com"
+  },
+  "homepage": "https://www.mondotwin.com/researchers",
+  "repository": "https://github.com/mondotwin/mondotwin-researcher",
+  "keywords": ["clinical-trials", "protocol-design", "eligibility-criteria", "estimands", "ich-guidelines", "fda-guidance", "drug-interactions", "clinical-research"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "mondoTWIN Researcher",
+        "shortDescription": "Registered trials and ICH and FDA guidance, with sources",
+        "longDescription": "Six skills for clinical researchers who design trials: benchmark similar registered trials, count and compare trials across the registries (phases, enrolment, endpoints, stop reasons, sponsors), review a protocol section against comparable trials and ICH guidance, draft eligibility criteria with an interaction screen, choose endpoints and estimands, and quote ICH or FDA guidance. Every trial and passage is cited with its registry id or guideline section. Sign in with your mondoTWIN researcher account.",
+        "developerName": "SHRARE Technology AG",
+        "category": "Research",
+        "capabilities": ["Read"],
+        "websiteURL": "https://www.mondotwin.com/researchers",
+        "privacyPolicyURL": "https://www.mondotwin.com/privacy",
+        "termsOfServiceURL": "https://www.mondotwin.com/terms",
+        "defaultPrompt": [
+          "Find completed and terminated phase 2 trials of colchicine after myocardial infarction, with enrolment, primary endpoint and stop reason.",
+          "Review this eligibility section against similar trials and ICH E9(R1)."
+        ],
+        "brandColor": "#E30613",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      }
+    }
+  }
+}

@@ -1,8 +1,8 @@
 {
   "name": "mondotwin-researcher",
   "displayName": "mondoTWIN Researcher",
-  "version": "0.1.0",
-  "description": "Clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, review a protocol section against ICH, draft eligibility criteria with drug-interaction screening, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
+  "version": "0.2.0",
+  "description": "Six clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, count and compare registered trials with read-only SQL, review a protocol section against ICH, draft eligibility criteria with drug-interaction screening, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
   "author": {
     "name": "SHRARE Technology AG / mondoTWIN",
     "url": "https://www.mondotwin.com"

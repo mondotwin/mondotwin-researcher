@@ -16,7 +16,7 @@ Draft inclusion and exclusion criteria grounded in what comparable trials used, 
 5. No patient data. Criteria are written for a population, never assessed for a named or identifiable patient. If the user pastes patient information, do not repeat it and ask them to remove it.
 6. The output is a draft for qualified professionals (investigators, clinical pharmacologists, regulatory) to validate. Say so in one line at the end.
 7. Answer in the user's language. Quote registry criteria verbatim in their original language.
-8. Use only `search_clinical_studies`, `get_clinical_study`, `screen_ddi`, `search_ich_guidelines` and, for enrichment questions only, `get_disease_targets`. If the mondoTWIN tools are not available, tell the user to connect the mondoTWIN connector, and stop.
+8. Use only `search_clinical_studies`, `get_clinical_study`, `screen_ddi`, `search_ich_guidelines` and, for enrichment questions only, `get_disease_targets`. `query_clinical_studies` is also available for counts and comparisons across many trials (read-only SQL over the trial tables; see the query-clinical-studies skill). If the mondoTWIN tools are not available, tell the user to connect the mondoTWIN connector, and stop.
 
 ## How the tools behave
 
