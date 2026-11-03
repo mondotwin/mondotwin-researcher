@@ -1,22 +1,24 @@
 {
   "name": "mondotwin-researcher",
   "displayName": "mondoTWIN Researcher",
-  "version": "0.2.0",
-  "description": "Six clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, count and compare registered trials with read-only SQL, review a protocol section against ICH, draft eligibility criteria with drug-interaction screening, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
+  "version": "0.5.0",
+  "description": "Seven clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, count and compare registered trials with read-only SQL, report which endpoints and comparators the trials of an indication used and how they fared, review a protocol section against ICH, draft eligibility criteria from comparable trials, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
   "author": {
     "name": "SHRARE Technology AG / mondoTWIN",
     "url": "https://www.mondotwin.com"
   },
   "homepage": "https://www.mondotwin.com/researchers",
   "repository": "https://github.com/mondotwin/mondotwin-researcher",
+  "privacyPolicyUrl": "https://www.mondotwin.com/privacy",
   "keywords": [
     "clinical-trials",
     "protocol-design",
     "eligibility-criteria",
+    "endpoints",
+    "comparators",
     "estimands",
     "ich-guidelines",
     "fda-guidance",
-    "drug-interactions",
     "clinical-research"
   ]
 }

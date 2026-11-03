@@ -1,28 +1,28 @@
 # mondoTWIN Researcher
 
-Six skills and the mondoTWIN connector for clinical researchers who design trials, for Claude and ChatGPT. The assistant searches mondoTWIN's database of registered clinical trials and regulatory guidance, and every trial or passage in an answer is cited with its registry id or guideline section, so you can check it at the source.
+Seven skills and the mondoTWIN connector for clinical researchers who design trials, for Claude and ChatGPT. The assistant searches mondoTWIN's database of registered clinical trials and regulatory guidance, and every trial or passage in an answer is cited with its registry id or guideline section, so you can check it at the source.
 
 ## What it does
 
 | Skill | Ask for | You get |
 |---|---|---|
 | `similar-trials-benchmark` | "Trials similar to a phase 3 of colchicine after MI" | A table of comparable trials: registry id with link, phase, status, enrolment (actual / target), primary endpoint and time frame, key criteria, stop reason; how many were searched and shown |
-| `query-clinical-studies` | "How many phase 3 trials in IPF stopped early, and why?" | Counts and comparisons across registered trials (phases, status, enrolment by phase, primary endpoints and time frames, stop reasons, sponsor class and country), with the read-only SQL query used and the registry ids behind the numbers |
+| `query-database` | "How many phase 3 trials in IPF stopped early, and why?", "Where is pembrolizumab authorised and by whom?", "When does nintedanib lose exclusivity?" | Counts, comparisons and landscapes over the twin's tables (trials, drugs and products, approvals and indications, exclusivity, companies, papers, diseases), with the release id, the read-only SQL used and the record keys behind every row |
 | `protocol-section-review` | "Review this endpoints section" (paste it) | Numbered, reasoned changes, each with its evidence (trial ids or a quoted ICH E6(R3), E8(R1), E9(R1) or M11 passage), marked "to validate" |
-| `eligibility-criteria` | "Draft eligibility for a phase 2 in IPF" | Inclusion and exclusion criteria drawn from comparable trials, plus medication exclusions backed by a drug-interaction screen |
+| `eligibility-criteria` | "Draft eligibility for a phase 2 in IPF" | Inclusion and exclusion criteria drawn from comparable trials, plus medication exclusions from what those trials prohibit |
 | `endpoint-and-estimand` | "What did similar trials measure, and what is my estimand?" | The endpoints and time points of comparable trials, and an estimand following ICH E9(R1): treatment, population, variable, intercurrent events and strategies, summary measure |
+| `endpoint-comparator-precedent` | "Which primary endpoints have phase 3 trials in ALS used, and how often did each succeed? Which comparators did they use?" | Per endpoint and phase, how many trials of the indication used it and how many were positive; the control arms used and the de-facto standard-of-care comparator; the n behind every rate, with the caveats |
 | `guidance-lookup` | "What does ICH E9(R1) say about the while-on-treatment strategy?" | The answer with the verbatim passage, guideline id and section |
 
 The skills load when your request matches them, or pick one by typing `/` in the message box in Claude. The assistant answers in your language.
 
 ## Data
 
-- ClinicalTrials.gov, as of 13 July 2026
-- EU CTR / CTIS, ISRCTN, ANZCTR and UMIN, as of 14 May 2026
+- mondoTWIN's twin: registered trials from ClinicalTrials.gov, EU CTR / CTIS, ISRCTN, ANZCTR, UMIN and the WHO portal ICTRP, deduplicated across registries and compiled into versioned releases; each answer states the release and each registry's as-of date, read from the database
 - ICH guidelines and FDA guidance documents, as held in the mondoTWIN database (not every FDA guidance is included)
-- Drug-interaction evidence from DrugBank and label-derived organ-toxicity data; disease-target associations from Open Targets
+- Disease-target associations from Open Targets
 
-Trials registered or updated after these dates are not in the database.
+Trials registered or updated after a registry's as-of date are not in the database. The twin holds no eligibility, age or design columns: the skills read the criteria from the registry text.
 
 ## Requirements
 
@@ -92,8 +92,8 @@ Your search terms, drug names, and the protocol excerpts the assistant needs to 
 plugin.json                       portable plugin manifest with the ChatGPT interface (OpenAI format)
 mcp.json                          the mondoTWIN connector with OAuth, portable format (ChatGPT)
 assets/icon.png                   plugin icon (ChatGPT)
-skills/<name>/SKILL.md            the six skills (Agent Skills format), shared by both
-skills/query-clinical-studies/references/   the data model and tested SQL recipes
+skills/<name>/SKILL.md            the seven skills (Agent Skills format), shared by both
+skills/query-database/references/          the twin's tables one line each, the recipes run on the release, the legacy map
 ```
 
 ## Licence

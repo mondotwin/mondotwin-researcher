@@ -9,8 +9,8 @@
     {
       "name": "mondotwin-researcher",
       "source": "./",
-      "description": "Six skills: similar-trial benchmarks, trial counts and comparisons, protocol section review, eligibility criteria, endpoints and estimands, and ICH/FDA guidance lookup on mondoTWIN's registry and guidance database.",
-      "version": "0.2.0",
+      "description": "Seven skills: similar-trial benchmarks, trial counts and comparisons, endpoint and comparator precedent by indication, protocol section review, eligibility criteria, endpoints and estimands, and ICH/FDA guidance lookup on mondoTWIN's registry and guidance database.",
+      "version": "0.5.0",
       "category": "research"
     }
   ]

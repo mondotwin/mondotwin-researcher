@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mondotwin-researcher",
-  "version": "0.2.0",
-  "description": "Six clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, count and compare registered trials with read-only SQL, review a protocol section against ICH, draft eligibility criteria with drug-interaction screening, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
+  "version": "0.5.0",
+  "description": "Seven clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, count and compare registered trials with read-only SQL, report which endpoints and comparators the trials of an indication used and how they fared, review a protocol section against ICH, draft eligibility criteria from comparable trials, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
   "author": {
     "name": "SHRARE Technology AG / mondoTWIN",
     "email": "francesco@mondotwin.com",
@@ -10,26 +10,85 @@
   },
   "homepage": "https://www.mondotwin.com/researchers",
   "repository": "https://github.com/mondotwin/mondotwin-researcher",
-  "keywords": ["clinical-trials", "protocol-design", "eligibility-criteria", "estimands", "ich-guidelines", "fda-guidance", "drug-interactions", "clinical-research"],
+  "keywords": ["clinical-trials", "protocol-design", "eligibility-criteria", "endpoints", "comparators", "estimands", "ich-guidelines", "fda-guidance", "clinical-research"],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "mondoTWIN Researcher",
-        "shortDescription": "Registered trials and ICH and FDA guidance, with sources",
-        "longDescription": "Six skills for clinical researchers who design trials: benchmark similar registered trials, count and compare trials across the registries (phases, enrolment, endpoints, stop reasons, sponsors), review a protocol section against comparable trials and ICH guidance, draft eligibility criteria with an interaction screen, choose endpoints and estimands, and quote ICH or FDA guidance. Every trial and passage is cited with its registry id or guideline section. Sign in with your mondoTWIN researcher account.",
+        "shortDescription": "Trial registries and guidance",
+        "longDescription": "Seven skills for clinical researchers who design trials: benchmark similar registered trials, count and compare trials across the registries (phases, enrolment, endpoints, stop reasons, sponsors), report which primary endpoints the trials of an indication used and how often each succeeded, by phase, and which comparators they used, review a protocol section against comparable trials and ICH guidance, draft eligibility criteria from comparable trials, choose endpoints and estimands, and quote ICH or FDA guidance. Every trial and passage is cited with its registry id or guideline section. Sign in with your mondoTWIN researcher account.",
         "developerName": "SHRARE Technology AG",
         "category": "Research",
         "capabilities": ["Read"],
         "websiteURL": "https://www.mondotwin.com/researchers",
+        "supportURL": "https://github.com/mondotwin/mondotwin-researcher/issues",
         "privacyPolicyURL": "https://www.mondotwin.com/privacy",
         "termsOfServiceURL": "https://www.mondotwin.com/terms",
         "defaultPrompt": [
-          "Find completed and terminated phase 2 trials of colchicine after myocardial infarction, with enrolment, primary endpoint and stop reason.",
-          "Review this eligibility section against similar trials and ICH E9(R1)."
+          "Find completed phase 2 and 3 trials of colchicine after myocardial infarction: enrolment, primary endpoint, stop reason.",
+          "How many phase 3 trials in idiopathic pulmonary fibrosis stopped early, and why?",
+          "What does ICH E9(R1) say about the while-on-treatment strategy? Quote the passage."
         ],
         "brandColor": "#E30613",
         "composerIcon": "./assets/icon.png",
         "logo": "./assets/icon.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Similar registered trials for a planned study",
+              "prompt": "Find phase 2 and phase 3 trials of colchicine after myocardial infarction or acute coronary syndrome. Give a table with registry id, phase, status, enrolment and primary endpoint.",
+              "tools_triggered": "search_clinical_studies, get_clinical_study",
+              "expected_behavior": "A table of registered colchicine trials in myocardial infarction or acute coronary syndrome (for example NCT05250596, COLOR-ACS, and NCT04181996, CADENCE), each with its registry id, phase, status, enrolment and primary endpoint, every trial cited by its registry id."
+            },
+            {
+              "description": "Counts across registered trials with read-only SQL",
+              "prompt": "How many phase 3 trials in idiopathic pulmonary fibrosis were stopped early, and for what reasons?",
+              "tools_triggered": "twin_catalog, twin_sql",
+              "expected_behavior": "The number of terminated, withdrawn or suspended phase 3 trials in idiopathic pulmonary fibrosis, broken down by stop reason (efficacy, business, safety, other, not stated), with the SQL query used and the registry ids behind the counts."
+            },
+            {
+              "description": "ICH guidance quoted with its source",
+              "prompt": "What does ICH E9(R1) say about the while-on-treatment strategy for intercurrent events? Quote the passage.",
+              "tools_triggered": "search_ich_guidelines, get_ich_guideline_full",
+              "expected_behavior": "Verbatim passages of ICH E9(R1) on the while-on-treatment strategy (it can be estimated when outcomes are collected up to the intercurrent event, and its interpretation must weigh the treatment's effect on how long patients stay on it), with the guideline id and section."
+            },
+            {
+              "description": "FDA guidance quoted with its source",
+              "prompt": "What does FDA guidance say about controlling the type I error rate across multiple endpoints? Quote it.",
+              "tools_triggered": "search_fda_guidelines, get_fda_guideline_full",
+              "expected_behavior": "Passages of the FDA guidance 'Multiple Endpoints in Clinical Trials' on type I error control for the primary endpoint family and on hierarchical and graphical testing, quoted with the document's name."
+            },
+            {
+              "description": "Genetic evidence for a disease's targets",
+              "prompt": "Which genes have the strongest genetic evidence for idiopathic pulmonary fibrosis?",
+              "tools_triggered": "get_disease_targets",
+              "expected_behavior": "A ranked list of Open Targets associations for idiopathic pulmonary fibrosis (EFO_0000768), such as TERT, PARN, RTEL1, SFTPA2 and MUC5B, with their genetic association scores and Open Targets named as the source."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Unrelated request",
+              "prompt": "What will the weather be in Zurich tomorrow?",
+              "expected_behavior": "No mondoTWIN tool is called; the assistant answers without the plugin or says it cannot help with this."
+            },
+            {
+              "description": "Patient records, which mondoTWIN neither holds nor accepts",
+              "prompt": "Look up the medical records and lab results of my patient Maria Rossi.",
+              "expected_behavior": "No mondoTWIN tool is called with the patient's name; the assistant says mondoTWIN holds registered trials and guidance, not patient records, and asks for no patient data."
+            },
+            {
+              "description": "A write action the read-only plugin cannot perform",
+              "prompt": "Register my new trial on ClinicalTrials.gov and submit the record for me.",
+              "expected_behavior": "No mondoTWIN tool is called to register or submit anything; the assistant says the plugin only reads registered trials and guidance and cannot file a registration."
+            }
+          ]
+        },
+        "commerce": false
+      },
+      "publication": {
+        "release_notes": "0.5.0: endpoint-comparator-precedent, a new skill: which primary endpoints the registered trials of an indication used and how often each succeeded or failed, by phase, and which control arms and active comparators they used, from the twin's tables, with the n behind every rate. 0.4.0: query-database replaced query-clinical-studies: one read-only skill over the twin's tables (trials, drugs and products, approvals and indications, exclusivity, companies and filings, papers, diseases), its recipes run against the served release, the same text the platform's own analysts use. Seven skills for trial design research on mondoTWIN's twin of registered trials (ClinicalTrials.gov, EU CTR/CTIS, ISRCTN, ANZCTR, UMIN, ICTRP) and ICH and FDA guidance, with the mondoTWIN connector."
       }
     }
   }
