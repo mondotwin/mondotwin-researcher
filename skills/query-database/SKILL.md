@@ -1,213 +1,188 @@
 ---
 name: query-database
-description: Answers questions from MondoTwin's published twin of the pharma world (schema v1, trials, drugs and products, approvals and indications, exclusivity, companies and filings, papers, diseases) through the five twin MCP tools twin_catalog, twin_find, twin_sql, twin_text and twin_record. Use for any count, list, landscape or timeline question, "where is it authorised and by whom", "who owns", "what did the trial find", "why did it stop", "when does exclusivity end", "which papers report it", for reading a raw registry record or a label's text, and before any analysis that cites the twin. Read-only; every answer carries the release id and the record keys of the rows it used.
-when_to_use: Trigger phrases include "find trials for", "how many trials", "drugs tested for", "trials of <drug>", "approved where", "authorised in", "indications of", "what the label says", "loss of exclusivity", "generics", "who holds", "who owns", "the sponsor's trials", "the group's pipeline", "what did the trial find", "why was it stopped", "papers reporting", "prevalence", "ICD-11 code", "Orphanet", "as of <date>", "twin_sql", "twin_find", "query the twin", "query the database". The platform's skill engine reads the frontmatter line by line, so these two fields stay on one line each.
+description: Use when a question is to be answered from MondoTwin's twin of the pharma world through the twin MCP tools (twin_catalog, twin_find, twin_sql, twin_text, twin_record): a count, list, landscape or timeline of trials, drugs, products, approvals, indications, exclusivity, generics, companies, ownership, filings, papers, diseases or prevalence; reading a raw registry record, a label's text or an abstract; and before any analysis that cites the twin.
+when_to_use: Trigger phrases include "find trials for", "how many trials", "drugs tested for", "trials of <drug>", "approved where", "authorised in", "indications of", "what the label says", "loss of exclusivity", "generics", "who holds", "who owns", "the sponsor's trials", "the group's pipeline", "what did the trial find", "why was it stopped", "papers reporting", "prevalence", "ICD-11 code", "Orphanet", "as of <date>", "twin_sql", "twin_find", "query the twin", "query the database". The frontmatter fields stay on one line each.
 ---
 
 # Query the database
 
 ## What you are querying
 
-MondoTwin's twin of the pharma world, compiled by the twin engine into versioned releases and served read only
-through PostgreSQL views. The agents' schema is **v1**: 58 tables named bare (`trial`, `drug`, `product`, `org`,
-`paper`, `disease`, ...), one active release at a time; `release_info` says which and what it was compiled from.
-Beside it the same principal is served the two domain releases v1 is projected from (`drugs_shadow.*`, the drug
-registry's working shape; `pharma_shadow.*`): prefer the v1 tables.
+MondoTwin's twin of the pharma world: 58 tables (schema v1), served read only as PostgreSQL views, one active release at
+a time. `release_info` names the release and the capture date of every source (`inputs.captured`); `catalog` describes
+every table (`about`) and every column; `coverage` says which source was read, for which scope, through which date.
+Table names are bare on the search path: write `trial`, never a schema prefix.
 
-The schema describes itself. Each table's `about` and each column's comment are in the database (`catalog`, and
-`twin_catalog` serves them), so this skill holds the **method, the router and the rules**, not a copy of the schema:
-`references/tables.md` is the one-line map you route by; `twin_catalog(table=<name>)` is the text you read before
-you query a table for the first time.
+Three facts shape every answer.
 
-Three facts shape every answer. The twin is **compiled**: a value is a decision (a code chosen, a drug linked, an
-outcome classed) with a measured accuracy, not a scrape. It is **dated on two axes**: what the source states and
-when the twin knew it. And it is **partial on purpose**: `coverage` says which sources were read for which scope,
-and whole families (deals, payments, royalties, rights, prices, spend, financials, claims, opportunities) are
-published empty until a source is read.
+- **Compiled.** A value is a decision (a code chosen, a drug linked, an outcome classed) with a measured accuracy per
+  method. A `confidence` column is that measurement, never a per-row probability.
+- **Dated on two axes.** What the source states (`event_on`, `start_date`, `approved_on`) and when the twin knew it
+  (`known_from`). Only the tables whose `about` says so support `known_from <= <date>` as an as-of filter
+  (`trial_outcome`, `regulatory_event`); `trial` holds today's state and its `known_from` is the first posting.
+- **Partial on purpose.** Thirteen tables are published empty until a source is read: `deal`, `deal_party`, `payment`,
+  `right_grant`, `royalty`, `royalty_party`, `royalty_paid`, `financial`, `org_runway`, `price`, `spend`, `claim`,
+  `opportunity`. An empty result from them is "unknown", never "none".
+
+Every row carries `sources` (record keys `<source>:<id>`, readable with `twin_record`) and `known_from`. Cite both,
+with the release id, for every fact you take.
 
 ## The five tools
 
-| Tool | What it does | Limits (measured 3 Nov 2026) |
+| Tool | What it does | Limits |
 |---|---|---|
-| `twin_catalog(table)` | the domains and active releases, the tables matching the word with `about`, columns and comments, row counts | `table=""` returns 80 KB and leaves the columns of 36 tables out: call it **per word** (`"trial"` gives the ten trial tables, `"loe"` one). The reply is the text of `catalog.about` and the column comments |
-| `twin_find(text, limit=20)` | a name or an outside id as `scheme:value` (`nct:NCT…`, `pmid:…`, `unii:DPT0O3T46P`, `cik:0000310158`, `lei:…`, `icd11:CB03.4`, `orpha:2032`) to the twin's ids: exact case-insensitive matches first (`via: name` or `via: external_id`), then word-prefix matches (`via: name prefix`) | up to 100; a common name returns trials whose title starts with it and salts and labelled forms beside the drug; a brand returns the drug and one `product` per territory: take the hit of the entity type you want. `drugbank:DB…` answers only for the 11,168 drugs that carry one (pembrolizumab has none: use `unii:`, `chembl:`, `cas:`, `rxcui:` or the name) |
-| `twin_sql(query, max_rows=100)` | one read-only `SELECT`, `WITH`, `VALUES` or `TABLE` over the views, bare table names | 15 s statement timeout; `max_rows` 1 to 500; the reply stops at about 60 KB and cuts a cell over 2,000 characters; 4 connections per server process, so one query at a time. `{"error": ...}` instead of an exception: read it, fix the query, retry once |
-| `twin_text(query, limit=10)` | full-text search over `passage` (registry records as the models read them, labels, EMA indication texts, abstracts) with web syntax: words ANDed, `"phrase"`, `OR`, `-word` | up to 25 passages, each with its `passage_id`, document, `links` (the trials, drugs, products it concerns), `markings` and the first 2,000 characters |
-| `twin_record(key, offset=0)` | the raw record behind a `sources` key, as captured: ClinicalTrials.gov's JSON (API v2 shape), a label, a filing, a paper | 20,000 characters a page (`next_offset`); served only from captures the principal is cleared for |
+| `twin_catalog(table)` | the release ids and the tables whose name contains the word, with `about`, columns and comments | `table=""` returns about 80 KB and omits the columns of 36 tables: ask per word (`"trial"` gives the nine trial tables). The same text is in `catalog`: `SELECT about FROM catalog WHERE table_name = '...'`; for the columns use `SELECT c->>'name', c->>'comment' FROM catalog, jsonb_array_elements(columns) c WHERE table_name = '...'` (the `columns` cell itself is cut at 2,000 characters) |
+| `twin_find(text, limit=20)` | a name or an outside id to the twin's ids: exact case-insensitive matches first (`via: name` or `external_id`), then word-prefix matches | up to 100. Outside ids as `scheme:value`: `nct:NCT…`, `pmid:…`, `doi:…`, `unii:…`, `chembl:…`, `cas:…`, `rxcui:…`, `drugbank:DB…` (11,168 drugs carry one), `cik:0000310158`, `lei:…`, `icd11:DD71`, `orpha:771`. A brand returns the drug and one `product` per territory; a common word returns trials whose title starts with it: take the hit of the entity type you want |
+| `twin_sql(query, max_rows=100)` | one read-only `SELECT`, `WITH`, `VALUES` or `TABLE` over the views | 15 s statement timeout; `max_rows` 1 to 500; the reply stops near 60 KB (`"more": true`, a `note`) and cuts a cell over 2,000 characters; one query at a time. `{"error": ...}` instead of an exception: read it, fix, retry once |
+| `twin_text(query, limit=10)` | full-text search over `passage` (registry records as the models read them, labels, EMA indication texts, abstracts): words ANDed, `"phrase"`, `OR`, `-word` | up to 25 passages, each with `passage_id`, `document_id`, `kind`, `section`, `snippet`, the first 2,000 characters, `links` (the trials, drugs, products it concerns). Ranks are flat; a query of many `OR` terms can time out: search one concept at a time |
+| `twin_record(key, offset=0)` | the raw record behind a `sources` key, as captured: ClinicalTrials.gov JSON (API v2 shape), a registry export row, a label, a filing index, a paper | 20,000 characters a page (`next_offset`); served only for captures the principal is cleared for |
 
-Tool names are written bare here. In Claude Code they carry the server's prefix (`mcp__mondotwin__twin_sql`); in
-ChatGPT and claude.ai the `mondoTWIN` connector lists them bare. If the tools are not available, say so and stop:
-never answer from memory as though from the database.
+Tool names are bare here. In Claude Code they carry the server's prefix (`mcp__mondotwin__twin_sql`); the ChatGPT and
+claude.ai connectors list them bare. If the tools are not available, say so and stop: never answer from memory as
+though from the database.
 
 ## The method
 
-1. **Frame** the question as a set of entities (which drug, disease, company, territory, period), a measure (count,
-   list, median, share, date) and a grouping. State the assumptions you make for anything the user left open.
-2. **Resolve names to ids** with `twin_find`. Then read the entity's own row (`drug.name`, `drug.moiety_id`;
-   `disease.name`, `disease.parent_ids`; `org.name` with `ownership_effective`) and say which ids you kept. A disease
-   name can match a parent, its residual codes (`.Y`, `.Z`) and an Orphanet entity at once (recipe A2); a company is
-   several `org` rows (recipe A3).
-3. **Read coverage** (`coverage`, recipe I2) whenever the answer could be "none", "not approved", "no deal", or when
-   a count will be read as a count of the world.
-4. **Read the table** with `twin_catalog(table=<name>)` the first time you use it in a session: its `about` holds the
-   as-of rule, the traps and what is empty. `references/tables.md` says which table to read.
-5. **Query by id**, in a recipe's shape (`references/recipes.md`): filter on an indexed id first, join after, count
-   `DISTINCT trial_id`, select the columns you need, `LIMIT`. One statement, one call.
-6. **Confirm at the source** for anything you will quote or that surprises you: `twin_record(<record key>)` for a
-   registry entry or a label, `SELECT text FROM passage WHERE passage_id = ...` for a quoted sentence, the
-   `evidence` spans of an outcome or an indication row.
-7. **Write the answer** in the format below: the release, the scope, the rows with their record keys, the limits,
-   and the SQL.
+1. **Count trials, not records.** `trial` is deduplicated across ten registries; a trial's member records are in
+   `trial_record` (`is_primary` marks the one its values come from) and its registry ids in `external_id` (schemes
+   `nct`, `eudract`, `ctis`, `isrctn`, `anzctr`, `umin`, `chictr`, `jrct`, `cris`, `itmctr`). Always
+   `count(DISTINCT trial_id)`. The merge is a judge's decision (measured agreement 0.939): a CTIS- or EudraCT-only
+   trial whose title equals an NCT trial's may be an unmerged duplicate; say so rather than counting it twice.
+2. **Resolve names to ids** with `twin_find`, or in SQL through `entity_name` (indexed on `lower(name)`) and
+   `external_id` (indexed on `scheme, value`). Then read the entity's own row and say which ids you kept. A disease
+   name matches an ICD-11 stem, its residual `.Y`/`.Z` codes and an Orphanet entity at once (recipe A2); a company is
+   several `org` rows (A3); a drug's salts point at a moiety (`drug.moiety_id`).
+3. **Read the table's `about`** the first time you use it in a session (`twin_catalog(table=...)` or `catalog`): it
+   holds the as-of rule, the traps and what is empty. `references/tables.md` says which table to read.
+4. **Dates and starts.** `start_date` and `completion_date` carry a `_precision` (day, month, year; a month is
+   stored as its first day). Milestones are `trial_event` rows (`registered`, `first patient`, `last patient`,
+   `primary completion`, `completion`, `results posted`, `stopped`) with `actual` true for an actual date and false
+   for a planned one. `registered_on` is the earliest public posting over the member records. "Started in 2024" is
+   `trial_event.kind = 'first patient'` in 2024 (say whether planned dates count) or `start_date` with its
+   precision; the two can differ. **There is no study-type column**: the twin holds no observational studies and no
+   healthy-volunteer ClinicalTrials.gov studies; "drug trials" are the trials with a `trial_drug` row,
+   "interventional" those with a `purpose` or a phase other than `NA`. State which proxy you used.
+5. **Drugs are substances.** `drug` has 174,945 rows; join on `moiety_id` to roll salts up. Names live in
+   `entity_name` (kinds `display`, `synonym`, `brand`, `code`, `as written`), ids in `external_id` (`unii`, `chembl`,
+   `cas`, `pubchem`, `inchikey`, `rxcui`, `drugbank`). `code_names` holds some development codes, not all: search a
+   code through `entity_name` and `trial_drug.raw_name` too. `twin_find` on an INN returns the moiety and its salts,
+   hydrates, impurities and metabolites as separate drug rows: keep the row with `moiety_id = drug_id` (or
+   `kind = display`) and query by `moiety_id`. `drug_target` holds Open Targets' stated mechanisms only (7,708 rows
+   over 5,930 drugs): a drug with no row has no stated mechanism in the twin, not no target.
+6. **Confirm at the source** anything you quote or that surprises you: `twin_record(<record key>)` for a registry
+   entry or a label, `SELECT text FROM passage WHERE passage_id = ...` for a sentence, the `evidence` spans of
+   `trial_outcome` and `approved_indication`.
+7. **Conditions are ICD-11 codes** (`icd11:<code>`), plus `orpha_id` on the same row for a rare disease. A disease
+   and its subtypes: `icd11_id LIKE 'icd11:DD71%'`, or `disease.ancestor_ids @> ARRAY['icd11:DD71']` (populated for
+   ICD-11 and Orphanet). Query by `icd11_id`; add `orpha_id` for a rare disease. `raw_text` is the trial's own
+   wording; `role = 'primary'` means listed first, not the treated disease. Traps: no NSCLC concept (2C25 is lung
+   cancer, 2C25.1 small cell: read `raw_text`); colorectal cancer sits at 2B91.Z, so 2B90 alone misses it; residual
+   codes end in Y or Z. A trial with no row stated no condition; a row with `icd11_id` NULL named a condition that
+   got no code.
+1. **Count trials, not records.** `trial` is deduplicated across ten registries; a trial's member records are in
+   `trial_record` (`is_primary` marks the one its values come from) and its registry ids in `external_id` (schemes
+   `nct`, `eudract`, `ctis`, `isrctn`, `anzctr`, `umin`, `chictr`, `jrct`, `cris`, `itmctr`). Always
+   `count(DISTINCT trial_id)`.
+2. **Phase vocabulary:** `phase_1`, `phase_1_2`, `phase_2`, `phase_2_3`, `phase_3`, `phase_4`, `NA` (devices,
+   behavioural, observational, no phase stated), `NULL` (a phase no rule reads). "Phase 2" is
+   `phase IN ('phase_1_2', 'phase_2', 'phase_2_3')`.
+3. **Status is today's state:** `completed`, `recruiting`, `active_not_recruiting`, `not_yet_recruiting`,
+   `terminated`, `withdrawn`, `suspended`, `unknown` (the registry's own word), `not_recruiting` (the ICTRP
+   registries fold completed, terminated and active into it), `NULL`. `status_stated` keeps the registry's words.
+   Never filter `trial.known_from` for an as-of state.
+4. **Dates:** `start_date` and `completion_date` carry a `_precision` (day, month, year; a month is stored as its
+   first day). Milestones are `trial_event` rows (`registered`, `first patient`, `last patient`,
+   `primary completion`, `completion`, `results posted`, `stopped`) with `actual` true for an actual date and false
+   for a planned one. `registered_on` is the earliest public posting over the member records.
+5. **Drugs are substances.** `drug` has 174,945 rows; join on `moiety_id` to roll salts up. Names live in
+   `entity_name` (kinds `display`, `synonym`, `brand`, `code`, `as written`), ids in `external_id` (`unii`, `chembl`,
+   `cas`, `pubchem`, `inchikey`, `rxcui`, `drugbank`). `code_names` holds some development codes, not all: search a
+   code through `entity_name` and `trial_drug.raw_name` too. `drug_target` holds Open Targets' stated mechanisms only
+   (7,708 rows over 5,930 drugs): a drug with no row has no stated mechanism in the twin, not no target.
+6. **`trial_drug.role`:** `investigational` (the test article), `comparator`, `background`. `drug_id` NULL means the
+   component's name was not linked to a substance; `raw_name` still holds it. Placebo, procedures and devices have no
+   row.
+7. **Conditions are ICD-11 codes** (`icd11:<code>`), plus `orpha_id` for a rare disease. A disease and its subtypes:
+   `icd11_id LIKE 'icd11:DD71%'`, or `disease.ancestor_ids @> ARRAY['icd11:DD71']` (populated for ICD-11 and
+   Orphanet). `raw_text` is the trial's own wording; `role = 'primary'` means listed first, not the treated disease.
+   Traps: no NSCLC concept (2C25 is lung cancer, 2C25.1 small cell: read `raw_text`); colorectal cancer sits at
+   2B91.Z, so 2B90 alone misses it; residual codes end in Y or Z. A trial with no row stated no condition (healthy
+   volunteers); a row with `icd11_id` NULL named a condition that got no code.
+8. **Products are per regulator and territory** (41 territories; `EU-central` for a Commission authorisation,
+   `NCA:<cc>` rows for national registers, `XI` Northern Ireland). `product_drug` links the moiety; `product_holder`
+   the current holder (`valid_from` is the capture day, not a transfer date: no as-of). `marketed` is true, false or
+   NULL as the source says. For a per-territory verdict read `territory_status` (`authorised`, `not authorised`,
+   `unknown`, with `basis`) rather than inferring from `product`. The holder resolves to a company for nearly every
+   US and EU-central product and for a minority elsewhere (Health Canada 9 %, PMDA 21 %, MFDS 15 %, Swissmedic 12 %,
+   ANVISA, TFDA and HSA 0 %): `holder_org_id` is then NULL, so carry `product_holder.holder_as_written` beside
+   `org.name`. A territory can have two product sources (Japan: the PMDA new-drug list and the MHLW price list),
+   giving two rows per presentation with different brand strings: aggregate by brand, not by row.
+9. **Labels cover few products.** `approved_indication` holds 5,312 statements for 1,040 of 403,501 products (989 US,
+   51 EU-central: the indication stages read a slice of the US labels and EMA medicines, and no national register
+   states indications), so `territory_status` carries a `disease_id` on about 1,000 of its 149,273 rows and the rest
+   read "any indication". No row is not "no indication": say "label not read" and fall back to `regulatory_event`
+   (approvals, efficacy supplements, CHMP opinions, tentative approvals, refusals, planned PDUFA dates; its
+   `known_from` equals `event_on`) and to the raw record.
+10. **Exclusivity:** `protection` lists Orange Book patents and exclusivities (US, complete), Purple Book
+    exclusivities and EU regulatory protection, per product: one patent appears once per product strength and use
+    code, so `DISTINCT` on (`number`, `expires`); exclusivity codes (orphan, nce, new_indication, pediatric, …)
+    surface with `kind NOT LIKE 'patent%'`. `loe` is one derived row per (moiety, US | EU-central): read `basis`
+    before the date (`generic launch`, `settlement`, `generic approval`, `protection`, `blocked`,
+    `national authorisation first`, `nothing on file`); it is a floor built from what is on file (biologic patents,
+    SPCs and most settlements are not sources). `cheap_version` counts generics marketed (`generic_products`) and
+    authorised (`generic_products_authorised`) per presentation; trust a zero only where `covered` is true.
+11. **Companies come in several rows.** `trial_org.resolution_status` says how a sponsor string became an org:
+    `resolved` (a registered entity), `clustered` or `minted` (the string's own company), `person`, `not a name`.
+    Roll a group up with `ownership_effective` (holder → companies, `controls`, `ultimate`), count a trial once
+    through `trial_org."primary"`. `ownership` dates a stake only where a source does (`valid_from` + basis).
+    `filing` indexes 3.29 M SEC filings with form, date and 8-K `items` but holds no filing text.
+12. **Papers are the ones trials list.** `paper` holds the papers linked to the release's trials, not a corpus
+    (`coverage`, entity `paper`). `paper_trial.relation`: `exact` reports the trial, `protocol`, `related` (reviews,
+    comparisons, older papers, digests of 8+ trials, retracted). Declared links (`found_by` with `paper_declared`)
+    carry no measured precision and can attach an earlier-phase abstract to a later-phase record: read the title
+    before citing. Check `paper.retracted`. `paper_drug` reaches a drug only through its trials.
+13. **Results are classes with evidence.** `trial_outcome.outcome`: `positive_significant`, `positive_trend`,
+    `descriptive_met`, `failed`, `harmful_or_inferior`, `stopped_operational`, `inconclusive`, `not_reported` (by
+    rule when nothing reports). `basis` says what it rests on; `evidence` holds the quoted spans with `passage_id`.
+    `known_from` dates the evidence the class rests on (a paper can postdate the registry's posting): "what was
+    knowable on a date" reads `trial_outcome.known_from <= date` **and** `trial_event` (`kind = 'results posted'`)
+    together, and "when were results first public" is the `results posted` event. `program.best_outcome` summarises
+    per (drug, disease).
+14. **Text lives in `passage`.** Sections of a registry record: `population`, `arms`, `strategy/<part>` (title,
+    phase, status, dates, design, descriptions), `results/primary_results`, `results/publication_results/<n>`; of a
+    paper: `abstract`; of a label: `indications_and_usage`; of an EMA record: `therapeutic_indication`. SQL over
+    3.7 M passages times out: reach text through `twin_text`, through a known `passage_id` (the `evidence` spans give
+    one), or through `document_link` (trial → document) then `passage.document_id`. A registry id is not a word
+    `twin_text` indexes: resolve it through `external_id`, then read the trial's passages.
+15. **Searching names in SQL:** `entity_name` with `lower(name) = lower('...')` or `name ILIKE 'prefix%'` is indexed;
+    a regex over `trial.title` scans 491,690 rows and runs 10 to 15 s against the 15 s limit. Prefer `twin_find`,
+    `entity_name`, `trial_drug.raw_name`, and `twin_text` for words inside records.
+16. **Territories and regulators:** ISO-2 codes (`XI` is Northern Ireland), `EU-central` (a Commission
+    authorisation), `EEA-national` (the coverage scope of the national registers read through EMA's Article 57
+    file); regulators are `FDA`, `EC`, `EMA`, `PMDA/MHLW`, `HC`, `TFDA`, `MFDS`, `ANVISA`, `Swissmedic`, `HSA`,
+    `NMPA`, `NCA:<cc>`. `territory` holds countries and dated sets (`EU-central`, `EEA`, `Europe`, `world`, `ex-US`);
+    a country against a set reads `members` as of a day (the `about` gives the SQL).
+17. **Empty tables answer "unknown".** Before "no deal", "no royalty", "no price", read `coverage`: the row has
+    `through_basis = 'not read'`. `territory_status` never reads `licensed out` while `right_grant` is empty.
+18. **Confidence is a measurement.** `trial_condition.confidence`, `trial_drug.confidence`,
+    `trial_outcome.confidence`, `paper_trial.confidence` and `trial_org.confidence` are the measured accuracy of the
+    method that made the row (the `about` names the evaluation). Quote them as such.
 
-## Which table answers which question
+## The answer
 
-| Question | Tables | Recipe |
-|---|---|---|
-| Trials of a drug, by phase and role | `trial_drug` (moiety) → `trial` | C1 |
-| A drug's indications landscape (which diseases, how far, with what result) | `program`, then `trial_condition` for detail | C2 |
-| Where a drug is authorised, under which brand, by whom | `product_drug` → `product` → `product_holder` → `org`; the summary `territory_status` | C3, C4 |
-| What a label says it is for | `approved_indication` (+ `passage` for the quote); `coverage` first | C5 |
-| When it was approved, how many supplements, PDUFA dates | `regulatory_event` | C6 |
-| What protects it and when exclusivity ends | `protection`, `loe` (read `basis`) | C7 |
-| How many generics are marketed | `cheap_version` | C8 |
-| Trials of a disease and its subtypes | `trial_condition` (`icd11_id` prefix or `disease.ancestor_ids`, `orpha_id`) → `trial` | D1 |
-| What is tested for a disease, ranked | `trial_condition` ⋈ `trial_drug` (role investigational) ⋈ `drug` | D2 |
-| Trials started per year | `trial_event` (`kind = 'first patient'`) | D3 |
-| How rare, how frequent; Orphanet ↔ ICD-11 | `prevalence`, `disease_map`, `disease.rare` | D4 |
-| A sponsor's or a group's trials | `trial_org` (`"primary"`) → `ownership_effective` → `org` | E1, E2 |
-| A company's filings | `external_id` (cik) → `filing_party` → `filing` | E3 |
-| What a trial found; what was known of it on a date | `trial_outcome` (`known_from <= date`) | F1, F3 |
-| Why trials stopped | `trial.why_stopped`, `stop_class` (a keyword rule: read the text) | F2, F4 |
-| Likely pathway, novelty angles, endpoint type | `trial_strategy` (inferences, measured per field) | G1 |
-| Everything about one trial | the one-pager over `trial`, `trial_condition`, `trial_drug`, `trial_org`, `trial_outcome`, `trial_event`, `trial_record`, `paper_trial`; `trial_endpoint`; `trial_strategy`; `twin_record` | B1 to B4 |
-| Papers reporting a trial or a drug | `paper_trial` (`relation = 'exact'`), `paper_drug`, `paper` | B1, H4 |
-| A sentence in a record, a label, an abstract | `twin_text`, then `passage` by id | H1 to H3 |
-| What the database holds and how current it is | `release_info`, `coverage`, `catalog` | I1 to I3 |
-| A country against EU-central, as of a date | `territory.members` | J1 |
+1. **Release and as-of.** `release@...` from `release_info`, the source's `through_on` from `coverage` for the tables
+   used, and the as-of date applied, if any.
+2. **Scope.** The ids kept (drug, disease codes, orgs), the filters, the assumptions.
+3. **Result.** The rows or the number, each fact with its record keys (`sources`) or `passage_id`; a count says
+   "trials of the release", not "trials in the world", unless `coverage` is complete for the scope.
+4. **Limits.** What the twin does not hold for this question (empty tables, `complete = false`, unlinked
+   components, NULL codes), stated as unknown.
+5. **The SQL**, so the reader can rerun it.
 
-## Rules that prevent wrong answers
+## Files
 
-1. **The release first.** `SELECT release, compiled_at, inputs->'captured' FROM release_info` gives the release id and
-   each source's capture day; `coverage.through_on` gives a source's own as-of date. Put them in the answer. Never
-   write an as-of date from memory or from an older answer: it changes with every release.
-2. **Coverage before "none".** `coverage` has one row per (source, entity type, scope). `complete` true means an
-   absence is evidence; false means a slice or an incomplete source; `through_basis = 'not read'` (source NULL) means
-   no source exists for that entity type: deal, payment, royalty, right_grant, financial, price, spend, claim. For
-   those the answer is "unknown, not read", never "none". `approved_indication` is a slice (989 US and 51 EU-central
-   products of 403,501); the trial tables are a release's slice (`pharma`, `trial`, complete false).
-3. **Count trials, not rows.** `trial_record`, `trial_condition`, `trial_drug`, `trial_org`, `paper_trial` fan out:
-   `count(DISTINCT trial_id)`, or filter with `trial_id IN (SELECT ...)`. A count by lead sponsor keeps
-   `trial_org."primary"` so a trial counts once.
-4. **Phase sets.** `phase_1_2` and `phase_2_3` are combined phases: phase 2 is `phase IN ('phase_1_2', 'phase_2',
-   'phase_2_3')`. `'NA'` (190,726) is not applicable or none stated (devices, behavioural, observational, most
-   ANZCTR, UMIN and ISRCTN records); NULL (73,874) is a stated phase no rule reads (27,399 of ChiCTR's 73,823 primary
-   trials, whose form writes '0'). Report the `NA` and NULL counts beside any phase breakdown.
-5. **Status is today's.** `trial` holds the latest state at capture; `not_recruiting` (59,284) is ICTRP's fold of
-   completed, terminated and active, so say which registries are in a status count. There is no status history. A
-   trial existed on a date when `registered_on <= date`; its milestones are `trial_event`; what was known of its
-   result is `trial_outcome` with `known_from <= date`. **Never filter `trial.known_from` for an as-of state.** Only
-   `trial_outcome` and `regulatory_event` take `known_from` as an as-of filter.
-6. **Diseases by code, read as text.** Find the code with `twin_find`, keep the `display` hit (`icd11:CB03.4` for
-   idiopathic pulmonary fibrosis; the parent `icd11:CB03`, idiopathic interstitial pneumonitis, carries the same
-   name as a synonym and would widen the set), then filter `trial_condition.icd11_id LIKE 'icd11:CB03.4%'` or join
-   `disease.ancestor_ids @> ARRAY['icd11:CB03.4']` for the subtree; add `orpha_id` for a rare disease. `raw_text` is
-   the trial's wording and `disease.name` the code's title: never group by the code and label by the mention.
-   ICD-11 traps: no NSCLC concept (2C25 is lung cancer, 2C25.1 small cell: use `raw_text`); colorectal cancer NOS
-   sits at 2B91 (rectosigmoid junction), so 2B90 alone misses it; residual codes end in Y or Z. `role = 'primary'`
-   means listed first, not treated. A row with `icd11_id` NULL is an uncoded condition; no row is no condition stated.
-7. **Drugs by moiety.** `trial_drug.drug_id`, `product_drug.drug_id`, `program.drug_id`, `loe.drug_id` are moieties.
-   17,207 `drug` rows are salts or forms (`moiety_id <> drug_id`): if `twin_find` returned one, query with its
-   `moiety_id`. `trial_drug.role` separates the test article (`investigational`) from `comparator` and `background`;
-   pembrolizumab is background in 404 phase 1 trials and investigational in 214.
-8. **Companies are several rows.** `trial_org.resolution_status`: only `resolved` (95,934 rows, 5,623 companies) names
-   a registered company; `clustered` and `minted` org_ids are made from the sponsor string, so one sponsor sits under
-   several ids (Merck Sharp & Dohme: ten `org` rows, three of which roll up to Merck & Co., Inc.). Find them all with
-   `twin_find`, roll up through `ownership_effective` (current state) and say which rows you summed. `org.kind` is
-   NULL on 123,945 of 309,844 rows.
-9. **Approval is `territory_status`, not `program`.** `program.highest_phase = 'approved'` and `approval_known` come
-   from the indication slice: pembrolizumab reads `phase_4` with `approval_known` false in lung cancer. Read
-   `territory_status` (`status`, `basis`) for where a drug is authorised, `product` and `product_holder` for the
-   brand and the holder. A NULL `holder_org_id` is an unresolved name (most national registers), not no holder:
-   `product_holder.holder_as_written` keeps it. A per-indication row exists only where a label was read; a
-   national product has none even then.
-10. **Exclusivity: `basis` before `expires`.** `loe.basis` says what set the date (generic launch, settlement,
-    generic approval, protection, blocked, national authorisation first, nothing on file) and `completeness` what was
-    not read (biologic patents, SPCs, most settlements). `protection` lists what the registries list: which patent is
-    the compound patent is not stated.
-11. **`confidence` is a method's measured accuracy**, one number per method from the eval journal, never a per-row
-    probability and never a model's own score: ICD-11 coding 0.800, arm drugs 0.817, sponsor to its own filer 0.883,
-    outcome class per model (Opus 5.5 0.882, Sonnet 5.5 0.856), the paper judge 0.982. `trial_strategy` has no
-    confidence column: its tags are one model's inferences, measured per field (pathway 0.903, endpoint type 0.785,
-    duration bucket 0.914, novelty angles exact set 0.548): a lead, not a filter of record. `trial_outcome`:
-    339,834 of 491,223 are `not_reported`; `failed` means a tested primary endpoint missed, not a weak result.
-12. **Say what is the registry's and what is the twin's.** Registry statements: `title`, `phase`, `status`,
-    `status_stated`, dates, enrolment, `countries`, `has_results`, `why_stopped`, `trial_endpoint`, `raw_text`,
-    `raw_name`, the products and their dates. Decisions of the twin, to label as such: the ICD-11 and Orphanet codes,
-    the drug links and roles, `org_id`, `stop_class` (a keyword rule: quote `why_stopped`), `trial_outcome`,
-    `trial_strategy`, `approved_indication.icd11_id`, `loe`, `program`, `territory_status`.
-13. **Text has a licence.** `markings` on a document or passage (`licence:ictrp`, `licence:ctgov-terms`, `pii`)
-    say what it is: quote only what the answer needs, cite the `passage_id` and the document's title. Registry
-    passages (sections `population`, `arms`, `strategy/trial`, `strategy/outcomes`, `results/<part>`) are the text
-    the models read, rendered from the record; the record itself is `twin_record`.
-14. **Papers.** `paper_trial.relation = 'exact'` (237,349) is a paper reporting the trial; `related` (365,517) is a
-    review, a meta-analysis, a dataset, an older paper or a digest. Check `paper.retracted`. `paper_drug` counts
-    comparators and background drugs: join `trial_drug.role`.
-15. **Nothing here writes.** Shortlists, triage states and notes are the analyst tools' job, never SQL.
-
-## Performance (measured 3 Nov 2026)
-
-| Shape | Time |
-|---|---|
-| a GROUP BY on an indexed `trial` column (phase, status) over 491,690 rows | about 0.1 s |
-| joins filtered by one id (a drug's trials, a trial's rows, a drug's products) | 0.01 to 3 s |
-| a disease subtree through `ancestor_ids` over `trial_condition` (lung cancer: 14,350 trials) | 5 s |
-| `trial_org` GROUP BY over 916,656 rows; `external_id` GROUP BY scheme over 2.6M | 5 to 7 s |
-| a whole-table GROUP BY on `entity_name` (3.1M) or `passage` (3.7M) | **times out** |
-
-Filter on an id or an indexed column first (`trial_id`, `drug_id`, `org_id`, `icd11_id`, `phase`, `status`,
-`(scheme, value)`, `record_key`, `passage_id`, `document_id`, `(kind, event_on)`); never `SELECT *` from a table
-with `sources` and `evidence` columns; `left(text, n)` for wide text; page with `OFFSET` only when aggregation
-cannot replace it. Several queries at once share four connections: a burst makes a trivial query time out.
-
-## How to write the answer
-
-**The question in one line.** Release `twin@<compiled_at>`; data as of: the capture days of the sources used
-(`release_info.inputs.captured`) or `coverage.through_on`.
-Scope: the ids kept (drug_id with its name, disease ids with their titles, org ids), the filters, the registries.
-
-One results table, columns named in plain words.
-
-- **What the rows show:** two to four sentences with the counts.
-- **Rows behind it:** the trials (registry id from `trial_record.record_key`, title), products or papers, at most
-  ten, each with its record keys (`sources`) and, for a quote, its `passage_id`.
-- **Limits:** coverage (slice or complete), twin-made columns used and their measured accuracy, `NA` and NULL
-  shares, truncation, codes possibly missed, tables empty by design.
-- **Query:** the SQL of each query, in a code block.
-- One closing line: compiled from registered and regulatory records for professionals to verify.
-
-## What the twin does not hold, and what to do
-
-- **Deals, rights, payments, royalties, prices, public spend, financial statements, web claims, opportunity
-  findings**: tables exist, published empty, `coverage` says 'not read'. Say "unknown, not read".
-- **Patents on a trial's regimen or a method of use**: `protection` lists Orange Book and Purple Book entries and EU
-  protection periods per product; no method-of-use search per trial and no freedom-to-operate verdict exists. Say
-  so; do not infer one from `loe`.
-- **Indications for national products** (Canada, Brazil, Switzerland, Korea, Singapore, China, Japan's price list,
-  the EEA national registers): no text source yet; the moiety's US or EU-central indications are the nearest
-  evidence and must be labelled as such.
-- **Population, eligibility, design (masking, control), sites**: not published as columns. The registry's text is in
-  `passage` (sections `population`, `arms`) and in `twin_record`; read it, do not count over it.
-- **Success predictions, candidate buckets, priority scores, MPC lists**: platform product data, not the twin.
-- **Full-text filings and papers**: `filing` holds dates, forms and 8-K items, not text; `paper` holds abstracts in
-  `passage` where the corpus scope allows.
-- **DrugBank and MedDRA content**: licensed; `drug` carries the registry's names and `external_id` a DrugBank id for
-  11,168 drugs, nothing more.
-
-## References
-
-- `references/tables.md`: the 58 tables, one line each: one row per, when to reach for it, the trap.
-- `references/recipes.md`: the queries, each run against the served release on 3 Nov 2026 with its result.
-- `references/from-the-warehouse.md`: the legacy MPC Finder warehouse's tables and JSONB paths and what answers them
-  now, for porting the analyst skills and for readers who know the old names.
-- For maintainers: `docs/mondotwin/pharma-schema-v1.md` (generated from `twin_pharma/schema/columns.py`; it may
-  describe columns the served release does not carry yet, so the served truth is `twin_catalog(table)`).
+- `references/tables.md`: the 58 tables, one line each, with row counts and the value sets of the columns that matter.
+- `references/recipes.md`: the query shapes (A1 to I2), each run against the twin, with what came back.
+- The database describes itself: `catalog` (every table's `about`, every column's comment and value set) and
+  `coverage`. The platform repo's `docs/mondotwin/pharma-schema-v1.md` is the same schema written out at length, with
+  the known gaps of the served release; read it when you have the repo, the catalog when you do not.

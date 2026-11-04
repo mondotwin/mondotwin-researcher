@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mondotwin-researcher",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Seven clinical-research skills on mondoTWIN's trial-registry and regulatory-guidance database: benchmark similar trials, count and compare registered trials with read-only SQL, report which endpoints and comparators the trials of an indication used and how they fared, review a protocol section against ICH, draft eligibility criteria from comparable trials, choose endpoints and estimands, and look up ICH or FDA guidance with quoted passages. Includes the mondoTWIN connector (OAuth sign-in).",
   "author": {
     "name": "SHRARE Technology AG / mondoTWIN",
@@ -88,7 +88,7 @@
         "commerce": false
       },
       "publication": {
-        "release_notes": "0.6.0: the connector moves to https://researchers.mondotwin.com/mcp, the researchers door: the same twelve read-only tools to every account; reconnect the mondoTWIN connector once. 0.5.0: endpoint-comparator-precedent, a new skill: which primary endpoints the registered trials of an indication used and how often each succeeded or failed, by phase, and which control arms and active comparators they used, from the twin's tables, with the n behind every rate. 0.4.0: query-database replaced query-clinical-studies: one read-only skill over the twin's tables (trials, drugs and products, approvals and indications, exclusivity, companies and filings, papers, diseases), its recipes run against the served release, the same text the platform's own analysts use. Seven skills for trial design research on mondoTWIN's twin of registered trials (ClinicalTrials.gov, EU CTR/CTIS, ISRCTN, ANZCTR, UMIN, ICTRP) and ICH and FDA guidance, with the mondoTWIN connector."
+        "release_notes": "0.7.0: query-database rewritten: the five twin tools with their measured limits, a seven-step method, a question-to-table router, 18 rules from the live catalog and 24 recipes each run on the served release, with the 58 tables one line each; nothing but the twin. 0.6.0: the connector moves to https://researchers.mondotwin.com/mcp, the researchers door: the same twelve read-only tools to every account; reconnect the mondoTWIN connector once. 0.5.0: endpoint-comparator-precedent, a new skill: which primary endpoints the registered trials of an indication used and how often each succeeded or failed, by phase, and which control arms and active comparators they used, from the twin's tables, with the n behind every rate. 0.4.0: query-database replaced query-clinical-studies: one read-only skill over the twin's tables (trials, drugs and products, approvals and indications, exclusivity, companies and filings, papers, diseases), its recipes run against the served release, the same text the platform's own analysts use. Seven skills for trial design research on mondoTWIN's twin of registered trials (ClinicalTrials.gov, EU CTR/CTIS, ISRCTN, ANZCTR, UMIN, ICTRP) and ICH and FDA guidance, with the mondoTWIN connector."
       }
     }
   }
