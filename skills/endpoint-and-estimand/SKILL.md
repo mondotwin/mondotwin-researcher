@@ -16,7 +16,7 @@ Show what comparable trials measured and when, then draft the estimand that the 
 5. No patient data. If the user pastes identifiable patient information, do not repeat it and ask them to remove it.
 6. The output is a draft for qualified professionals (clinicians and statisticians) to validate. Say so in one line at the end.
 7. Answer in the user's language. Quote registry text and guidelines verbatim in their original language.
-8. Use only `search_clinical_studies`, `get_clinical_study`, `search_ich_guidelines`, `get_ich_guideline_full` and, for biomarker endpoints only, `get_disease_targets`. `twin_sql` is also available for counts and comparisons across many trials (read-only SQL over the twin's tables, for example how often an endpoint is primary; see the query-database skill), and for the criteria and arms text of a trial. If the mondoTWIN tools are not available, tell the user to connect the mondoTWIN connector, and stop.
+8. Use only `search_clinical_studies`, `get_clinical_study`, `search_ich_guidelines`, `get_ich_guideline_full` and, for biomarker endpoints only, `get_disease_targets`. `twin_sql` is also available for counts and comparisons across many trials (read-only SQL over the twin's tables, for example how often an endpoint is primary; see the query-database skill), and for the criteria and arms text of a trial. If the mondoTWIN tools are not available, or a call answers that authorization is required, the connector is not connected yet: ask the user to connect **mondoTWIN** (the assistant opens the sign-in window; they allow access, then sign in or register with their mondoTWIN account, and a new account waits for approval), and continue once the tools answer. Never answer from memory in the meantime.
 
 ## How the tools behave
 

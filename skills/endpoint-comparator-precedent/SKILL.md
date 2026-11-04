@@ -16,7 +16,7 @@ Two design-time questions have an answer in the registered trials of an indicati
 5. No patient data. If the user pastes identifiable patient information, do not repeat it and ask them to remove it.
 6. The output is descriptive precedent for qualified professionals (clinicians, statisticians, regulatory) to weigh; it is not a prediction and no success-probability model is applied. Say so in one line at the end.
 7. Answer in the user's language. Quote endpoint labels as the registries wrote them.
-8. Use only `twin_find`, `twin_catalog`, `twin_sql`, `twin_text` and, to read one trial, `get_clinical_study`. `twin_sql` runs one read-only `SELECT` or `WITH` over the twin's tables (15 s, at most 500 rows; see the query-database skill); page with `OFFSET` when a reply says `more`. `twin_catalog(table="trial_endpoint")` shows a table's columns. If the mondoTWIN tools are not available, tell the user to connect the mondoTWIN connector, and stop.
+8. Use only `twin_find`, `twin_catalog`, `twin_sql`, `twin_text` and, to read one trial, `get_clinical_study`. `twin_sql` runs one read-only `SELECT` or `WITH` over the twin's tables (15 s, at most 500 rows; see the query-database skill); page with `OFFSET` when a reply says `more`. `twin_catalog(table="trial_endpoint")` shows a table's columns. If the mondoTWIN tools are not available, or a call answers that authorization is required, the connector is not connected yet: ask the user to connect **mondoTWIN** (the assistant opens the sign-in window; they allow access, then sign in or register with their mondoTWIN account, and a new account waits for approval), and continue once the tools answer. Never answer from memory in the meantime.
 
 ## Step 1: resolve the indication to ICD-11 codes
 

@@ -16,7 +16,7 @@ Find the registered trials most comparable to the user's study and present them 
 5. No patient data. Work at protocol and registry level only. If the user pastes identifiable patient information, do not repeat it and ask them to remove it.
 6. The output is a draft for qualified professionals to validate. Say so in one line at the end.
 7. Answer in the user's language. Keep registry ids, trial titles and quoted registry text in their original language.
-8. Use `search_clinical_studies` and `get_clinical_study` to find and read trials, and `twin_sql` or `twin_record` for the eligibility text they do not return. `twin_sql` also counts and compares across many trials (read-only SQL over the twin's tables; see the query-database skill). If the mondoTWIN tools are not available, tell the user to connect the mondoTWIN connector, and stop. Do not answer from memory as though from the database.
+8. Use `search_clinical_studies` and `get_clinical_study` to find and read trials, and `twin_sql` or `twin_record` for the eligibility text they do not return. `twin_sql` also counts and compares across many trials (read-only SQL over the twin's tables; see the query-database skill). If the mondoTWIN tools are not available, or a call answers that authorization is required, the connector is not connected yet: ask the user to connect **mondoTWIN** (the assistant opens the sign-in window; they allow access, then sign in or register with their mondoTWIN account, and a new account waits for approval), and continue once the tools answer. Never answer from memory in the meantime. Do not answer from memory as though from the database.
 
 ## How the trial tools behave
 
