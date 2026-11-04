@@ -38,8 +38,12 @@ with the release id, for every fact you take.
 | `twin_record(key, offset=0)` | the raw record behind a `sources` key, as captured: ClinicalTrials.gov JSON (API v2 shape), a registry export row, a label, a filing index, a paper | 20,000 characters a page (`next_offset`); a CTIS record can run to 24 pages (its `protocol_code` and titles are in the first); served only for captures the principal is cleared for |
 
 Tool names are bare here. In Claude Code they carry the server's prefix (`mcp__mondotwin__twin_sql`); the ChatGPT and
-claude.ai connectors list them bare. If the tools are not available, say so and stop: never answer from memory as
-though from the database.
+claude.ai connectors list them bare. If the mondoTWIN tools are not available, or a call answers that authorization is
+required, the mondoTWIN connector is not connected yet: never answer from memory as though from the database. Tell the
+user in one short message how to connect it, and continue once the tools answer: in Claude, select Connect when Claude
+offers it, or Customize > Connectors > mondotwin > Connect; in ChatGPT, Plugins > mondoTWIN Researcher (or the
+mondoTWIN connector) > Connect, then start a new chat. They allow access, then sign in or register with a mondoTWIN
+account; a new account waits for mondoTWIN's approval.
 
 ## The method
 
