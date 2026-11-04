@@ -32,8 +32,8 @@ WHERE d.disease_id IN (SELECT entity_id FROM entity_name WHERE entity_type = 'di
 
 → `icd11:DD71` Ulcerative colitis (parents `[]`), `icd11:DD71.0` Ulcerative pancolitis and `icd11:DD71.Z` Ulcerative
 colitis, unspecified (parents `[icd11:DD71]`, ancestors `icd11:DD71`), `orpha:771` Ulcerative colitis (rare false).
-Keep the stem and select its subtypes with `icd11_id LIKE 'icd11:DD71%'` or `ancestor_ids @> ARRAY['icd11:DD71']`;
-say whether you also kept the Orphanet id.
+Keep the stem and select its subtypes with `icd11_id LIKE 'icd11:DD71%'` or `ancestor_ids @> ARRAY['icd11:DD71']`.
+The Orphanet id adds trials only for a rare disease (where `trial_condition.orpha_id` is set); say whether you kept it.
 
 **A3. A company and its group.** `twin_find("Prometheus Biosciences")` → `org d3a43215-b499-5836-bafd-9f3a7ef3baca`
 ("Prometheus Biosciences Inc.", `via: name prefix`). Then the chain:
@@ -60,7 +60,10 @@ GROUP BY 1, 2 ORDER BY 1, 2;
 ```
 
 → 6 rows, 13 trials: phase_2 active_not_recruiting 4, completed 2, not_yet_recruiting 2, recruiting 1; phase_3
-active_not_recruiting 1, recruiting 3. Drop `td.role` to include trials where the drug is a comparator or background.
+active_not_recruiting 1, recruiting 3. One of the four phase 3 rows is CTIS-only (`ctis:2024-518296-56-00`, same title
+as NCT06430801; its raw record's `protocol_code` reads "MK-7240-008 study 2"): the second study of a programme the
+ClinicalTrials.gov record covers in one entry. Thirteen registrations, twelve if programmes are counted: say which.
+Drop `td.role` to include trials where the drug is a comparator or background.
 
 **B2. The registry ids and member records of those trials.**
 
@@ -74,7 +77,8 @@ GROUP BY t.trial_id, t.phase, t.status ORDER BY records DESC LIMIT 6;
 ```
 
 → e.g. `b2ea9860-…` phase_2 completed: `ctis:2023-509741-12-00, eudract:2021-000091-11, nct:NCT04996797`, 3 records.
-One trial, three registrations: count the trial.
+One trial, three registrations: count the trial. To print titles use `coalesce(t.brief_title, t.title)`: a CTIS-only
+trial has no lay title.
 
 **B3. The indication landscape of a drug.**
 
@@ -103,10 +107,13 @@ WHERE ts.drug_id = 'e9d253f9-80be-577d-b256-8bf32c2aca6d' AND ts.disease_id IS N
 ORDER BY ts.status, ts.territory;
 ```
 
-→ risankizumab: 16 rows, all `authorised`, basis `product` (one CA row `product, not marketed`): BR, CA, CH, CN, EU-central
-(AbbVie Deutschland GmbH And Co. KG), IS, JP (AbbVie GK), KR, LI, NO, SG, TW, US (AbbVie Inc.), XI. Holder is NULL where
-the register names no holder the twin resolved. `disease_id IS NULL` is the drug in any indication; per-indication rows
-exist where a label was read.
+→ risankizumab: 16 rows over 14 territories, all `authorised` (CA twice: basis `product` and `product, not marketed`;
+JP twice, one per source): BR, CA, CH, CN, EU-central (AbbVie Deutschland GmbH And Co. KG), IS, JP (AbbVie GK), KR, LI,
+NO, SG, TW, US (AbbVie Inc.), XI. `holder` resolves in five territories; the register names an AbbVie affiliate in every
+one (`product_holder.holder_as_written`: AbbVie AG for CH, AbbVie Corporation for CA, AbbVie Korea, AbbVie Pte for SG,
+AbbVie Farmacêutica for BR, Abbvie Ltd for XI): join `product_drug` → `product_holder` for the string when `holder` is
+NULL. The CN row rests on web evidence (`complete = false`, brand NULL). `disease_id IS NULL` is the drug in any
+indication; per-indication rows exist where a label was read.
 
 **C2. The products themselves.**
 
@@ -162,18 +169,20 @@ WITH d AS (SELECT drug_id FROM drug WHERE lower(name) = 'upadacitinib' AND moiet
 SELECT 'loe' AS what, l.territory, l.basis AS kind, l.set_by AS number, l.expires, l.completeness AS note
 FROM loe l WHERE l.drug_id IN (SELECT drug_id FROM d)
 UNION ALL
-(SELECT DISTINCT 'protection', pr.territory, pr.kind, pr.number, pr.expires, p.brand || ' ' || coalesce(pr.use_code, '')
+(SELECT 'protection', pr.territory, pr.kind, pr.number, pr.expires, string_agg(DISTINCT coalesce(pr.use_code, ''), ' ')
  FROM product_drug pd JOIN product p ON p.product_id = pd.product_id JOIN protection pr ON pr.product_id = p.product_id
  WHERE pd.drug_id IN (SELECT drug_id FROM d) AND pr.territory = 'US' AND NOT pr.delisted
- ORDER BY pr.expires DESC LIMIT 12)
+ GROUP BY pr.territory, pr.kind, pr.number, pr.expires ORDER BY pr.expires DESC LIMIT 12)
 ORDER BY what, expires DESC NULLS LAST;
 ```
 
 → loe US `protection` 2031-01-15, set_by `us/NDA211675/003/patent_substance/8962629`, completeness "compound patent (the
 earliest-expiring drug-substance patent, its extensions included)…"; loe EU-central `protection` 2029-12-16, set_by
 `eu/EU/1/19/1404/EMEA/H/C/004760/eu_market/2004` ("regulatory protection from the first central authorisation…");
-protection US RINVOQ `patent_use` 11564922 and 11607411 expiring 2038-03-09 with use codes U-4303, U-4302, U-3341,
-U-3624. Without `DISTINCT` each patent repeats once per product strength. Read `loe.basis` before the date.
+protection US `patent_use` 11564922 and 11607411 expiring 2038-03-09 with use codes U-4303, U-4302, U-3341, U-3624,
+and lower down 8962629 as both `patent_substance` and `patent_use` (2031-01-15), the row `loe` counted. Group by
+(`kind`, `number`, `expires`): without it each patent repeats once per product strength and use code, and a `DISTINCT`
+on (`number`, `expires`) alone merges the two kinds. Read `loe.basis` before the date.
 
 **C6. Generics marketed and authorised.**
 
@@ -207,9 +216,12 @@ WHERE ev.event_on >= '2024-01-01' AND ev.event_on < '2025-01-01'
 ```
 
 → 67 drug trials in ulcerative colitis (code DD71 and subtypes) with a first-patient date in 2024, 24 phase 2, 11 phase
-3. The `EXISTS` keeps trials with a drug arm; drop it for every trial. `trial_event.actual` separates actual from
-planned starts. For a drug's starts per year: group `trial_event` by `extract(year FROM event_on)` over the trial ids of
-B1 (tulisokibart: 2021 2, 2022 1, 2023 1, 2024 2, 2025 5, 2026 3; `actual` true on 10 of 14).
+3; 58 by `trial.start_date` instead. The `EXISTS` keeps trials with a drug arm; drop it for every trial. Adding the
+Orphanet id (`orpha:771`) changes nothing for a common disease; it matters for rare ones, where `orpha_id` is set.
+`trial_event.actual` is true, false or NULL (the registry did not say) and a trial has one `first patient` row per
+member record that states it (80 rows for these 67 trials): take `min(event_on)` per trial, or `bool_or(actual)`,
+before grouping by the flag. For a drug's starts per year: group `trial_event` by `extract(year FROM event_on)` over
+the trial ids of B1 (tulisokibart: 2021 2, 2022 1, 2023 1, 2024 2, 2025 5, 2026 3; `actual` true on 10 of 14).
 
 **D2. What is tested in a disease, ranked.**
 
@@ -276,6 +288,20 @@ ORDER BY f.filed_at DESC LIMIT 6;
 → Merck 8-Ks with item 2.01 (completion of an acquisition): 2021-06-03 `sec:0001193125-21-180657`, 2014-10-02,
 2009-11-04 (items 2.01, 2.03, 3.03, 4.01, 5.02, 5.03, 5.05, 8.01), 2007-11-26. The filing's text is not held: the deal
 terms need the filing itself.
+
+**E4. Partners on a drug while `deal` is empty.** The twin holds no agreements; the registries show who runs the
+trials over time.
+
+```sql
+SELECT t.registered_on, coalesce(t.brief_title, t.title) AS title, tor.role, tor."primary", tor.raw_name
+FROM trial_drug td JOIN trial t ON t.trial_id = td.trial_id JOIN trial_org tor ON tor.trial_id = t.trial_id
+WHERE td.drug_id = '6d82d11b-9a3b-5d4c-aa0f-e16a758602ca' AND tor.role IN ('lead sponsor', 'collaborator')
+ORDER BY t.registered_on, tor.role;
+```
+
+→ duvakitug: Teva Branded Pharmaceutical Products R&D as lead sponsor with Sanofi as collaborator on the 2020 to 2023
+trials; Sanofi (and Sanofi K.K.) as lead with Teva as collaborator from 2025. Present this as the sponsorship pattern
+it is, with `coverage` saying deals are not read; never as a licence.
 
 ## F. Results, stops, papers
 
@@ -354,7 +380,7 @@ endpoints; what was found is F1.
 **I1. Is an absence evidence?**
 
 ```sql
-SELECT entity_type, source, scope, complete, through_on, through_basis
+SELECT entity_type, coalesce(source, '-') AS source, scope, complete, through_on, through_basis
 FROM coverage WHERE entity_type IN ('product', 'approved_indication', 'protection', 'paper', 'trial', 'deal')
 ORDER BY entity_type, scope, source;
 ```
