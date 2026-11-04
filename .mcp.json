@@ -2,7 +2,7 @@
   "mcpServers": {
     "mondotwin": {
       "type": "http",
-      "url": "https://mcp.mondotwin.com/mcp"
+      "url": "https://researchers.mondotwin.com/mcp"
     }
   }
 }

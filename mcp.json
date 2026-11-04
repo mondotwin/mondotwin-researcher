@@ -3,7 +3,7 @@
   "mcpServers": {
     "mondotwin": {
       "type": "streamable-http",
-      "url": "https://mcp.mondotwin.com/mcp",
+      "url": "https://researchers.mondotwin.com/mcp",
       "extensions": {
         "com.openai": {
           "auth": {

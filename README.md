@@ -27,7 +27,7 @@ Trials registered or updated after a registry's as-of date are not in the databa
 ## Requirements
 
 - A mondoTWIN account with researcher access. Request it at https://www.mondotwin.com/researchers.
-- The bundled connector, `mondotwin`, at `https://mcp.mondotwin.com/mcp` (remote MCP over streamable HTTP). You sign in with your mondoTWIN account through OAuth; the plugin contains no keys or secrets.
+- The bundled connector, `mondotwin`, at `https://researchers.mondotwin.com/mcp` (remote MCP over streamable HTTP). You sign in with your mondoTWIN account through OAuth; the plugin contains no keys or secrets.
 
 ## Install on Claude (claude.ai, the desktop app, Cowork)
 
@@ -39,7 +39,7 @@ Trials registered or updated after a registry's as-of date are not in the databa
 
 The plugin then also reaches Claude Code as a synced plugin at the next session start.
 
-On Claude Free, or without plugins, download [mondotwin-researcher.zip](https://github.com/mondotwin/mondotwin-researcher/releases/latest/download/mondotwin-researcher.zip), upload it in **Customize > Skills**, and add the connector by hand in **Customize > Connectors > Add custom connector** (name `mondoTWIN`, URL `https://mcp.mondotwin.com/mcp`).
+On Claude Free, or without plugins, download [mondotwin-researcher.zip](https://github.com/mondotwin/mondotwin-researcher/releases/latest/download/mondotwin-researcher.zip), upload it in **Customize > Skills**, and add the connector by hand in **Customize > Connectors > Add custom connector** (name `mondoTWIN`, URL `https://researchers.mondotwin.com/mcp`).
 
 ## Use in ChatGPT
 
@@ -55,7 +55,7 @@ ChatGPT has a **Plugins** page (left sidebar, or https://chatgpt.com/plugins). I
 **Connector only (ChatGPT on the web)**
 
 1. Open **Plugins > Add > Add custom MCP server**.
-2. **Name** `mondoTWIN`, **Server URL** `https://mcp.mondotwin.com/mcp`, **Authentication** OAuth (the description is optional).
+2. **Name** `mondoTWIN`, **Server URL** `https://researchers.mondotwin.com/mcp`, **Authentication** OAuth (the description is optional).
 3. Tick **I understand and want to continue** and select **Create as a plugin**.
 4. Connect and sign in with your mondoTWIN account.
 5. In a chat, open **+** and pick **mondoTWIN**.
@@ -81,7 +81,7 @@ In `/mcp`, select the `mondotwin` server and sign in. If you already added the m
 
 ## What data leaves your session
 
-Your search terms, drug names, and the protocol excerpts the assistant needs to search with are sent to `mcp.mondotwin.com`, which returns registry records and guidance passages. mondoTWIN processes these requests under your account; see https://www.mondotwin.com for its terms and privacy policy.
+Your search terms, drug names, and the protocol excerpts the assistant needs to search with are sent to `researchers.mondotwin.com`, which returns registry records and guidance passages. mondoTWIN processes these requests under your account; see https://www.mondotwin.com for its terms and privacy policy.
 
 ## Contents
 
